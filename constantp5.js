@@ -34,7 +34,7 @@ class particle {
         }
     }
     pertubation() {
-        if (isInRange(this, { pos: { x: mouseX, y: mouseY } }, 30)) {
+        if (mouseIsPressed === true && isInRange(this, { pos: { x: mouseX, y: mouseY } }, 30)) {
             // let factor = 1
             // let xForce = 0
             // let yForce = 0
