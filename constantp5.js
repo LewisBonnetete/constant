@@ -1,16 +1,17 @@
 let width = window.innerWidth
 let height = window.innerHeight
-
 let particles = []
+let initialRange = 30
+let range = initialRange
 
+let isFullScreen = false
 class particle {
     constructor (y) {
         this.pos = { x: width, y: y }
-        this.initialVect = { x: -4, y: 0.03 }
+        this.initialVect = { x: -4, y: 0 + random(30) / 100 }
         this.perturbater = { x: 0, y: 0 }
         this.pusher = { x: 0, y: 0 }
         this.color = color(17, 41, 255)
-        // this.color = color(255,255, 255)
     }
 
     move() {
@@ -34,7 +35,7 @@ class particle {
         }
     }
     pertubation() {
-        if (mouseIsPressed === true && isInRange(this, { pos: { x: mouseX, y: mouseY } }, 30)) {
+        if (mouseIsPressed === true && isInRange(this, { pos: { x: mouseX, y: mouseY } }, range)) {
             // let factor = 1
             // let xForce = 0
             // let yForce = 0
@@ -124,6 +125,7 @@ function getRandomInt(max) {
 
 function addParticle() {
     let odds = 0
+    // let limit = 4000
     let limit = 500
 
     if (particles.length < limit) {
@@ -160,15 +162,48 @@ function isInRange(a, b, range) {
     return false
 }
 
+function touchStarted () {
+    var fs = fullscreen();
+    if (!fs && !isFullScreen) {
+        isFullScreen = true
+        fullscreen(true);
+    }
+  }
+  
+/* full screening will change the size of the canvas */
+function windowResized() {
+    resizeCanvas(window.innerWidth, window.innerHeight);
+    width = window.innerWidth
+    height = window.innerHeight
+    background(51)
+}
+
+/* prevents the mobile browser from processing some default
+* touch events, like swiping left for "back" or scrolling the page.
+*/
+document.ontouchmove = function(event) {
+    event.preventDefault();
+};
+
 function setup() {
-    createCanvas(width, height);
-    background(51);
+    createCanvas(width, height)
+    background(51)
 }
 
 function  draw() {
-    background(51, 51, 51, 5);
+    background(51, 51, 51, 5)
+
     if (particles.length < width * 5) {
-        addParticle();
+        addParticle()
+    }
+    if (mouseIsPressed) {
+        if (range > 10) {
+            range -= 0.1
+        } else {
+            range -= 0.05
+        }
+    } else {
+        range = initialRange
     }
     for (let index = 0; index < particles.length; index++) {
         const particle = particles[index]
