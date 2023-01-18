@@ -1,17 +1,31 @@
 let width = window.innerWidth
 let height = window.innerHeight
 let particles = []
-let initialRange = 30
+let particlesLimit = width * 6
+
+let globalPerturbation = 0
+let nbrOfPerturbatedParticles = 0
+
+let initialRange = 40
 let range = initialRange
+let bg = 51
+
+let sound1
+let sound2
+let timing = 40
+
+let filter
 
 let isFullScreen = false
+let ready = false
 class particle {
     constructor (y) {
         this.pos = { x: width, y: y }
-        this.initialVect = { x: -4, y: 0 + random(30) / 100 }
+        this.initialVect = { x: -3.8, y: 0 + random(35) / 100 }
         this.perturbater = { x: 0, y: 0 }
         this.pusher = { x: 0, y: 0 }
         this.color = color(17, 41, 255)
+        this.isPerturbated = false
     }
 
     move() {
@@ -19,6 +33,25 @@ class particle {
         this.pertubation()
         this.pos.x += this.initialVect.x + this.pusher.x + this.perturbater.x
         this.pos.y += this.initialVect.y + this.pusher.y + this.perturbater.y
+
+        let pertubationValue = Math.abs(this.perturbater.x) + Math.abs(this.perturbater.y)
+        let perturbationState = pertubationValue > 0.99
+
+        if (perturbationState) {
+            globalPerturbation += pertubationValue
+        }
+        if (perturbationState && !this.isPerturbated) {
+            // newly perturbated
+            nbrOfPerturbatedParticles += 1
+            console.log('nbrOfPerturbatedParticles', nbrOfPerturbatedParticles);
+        }
+        if (!perturbationState && this.isPerturbated) {
+            // not anymore
+            nbrOfPerturbatedParticles -= 1
+            console.log('nbrOfPerturbatedParticles', nbrOfPerturbatedParticles);
+        }
+        this.isPerturbated = perturbationState
+
     }
     repeat() {
         if (this.pos.x > width) {
@@ -125,11 +158,10 @@ function getRandomInt(max) {
 
 function addParticle() {
     let odds = 0
-    // let limit = 4000
-    let limit = 500
+    let oddLimit = 2000
 
-    if (particles.length < limit) {
-        odds = limit
+    if (particles.length < oddLimit) {
+        odds = oddLimit
     } else {
         odds = particles.length
     }
@@ -168,6 +200,7 @@ function touchStarted () {
         isFullScreen = true
         fullscreen(true);
     }
+    ready = true;
   }
   
 /* full screening will change the size of the canvas */
@@ -175,7 +208,7 @@ function windowResized() {
     resizeCanvas(window.innerWidth, window.innerHeight);
     width = window.innerWidth
     height = window.innerHeight
-    background(51)
+    background(bg)
 }
 
 /* prevents the mobile browser from processing some default
@@ -185,31 +218,70 @@ document.ontouchmove = function(event) {
     event.preventDefault();
 };
 
+function preload() {
+    soundFormats('mp3');
+    sound1 = loadSound('./constantSound.mp3');
+    sound2 = loadSound('./constantSound.mp3');
+}
+
 function setup() {
     createCanvas(width, height)
-    background(51)
+    background(bg)
+    filter = new p5.HighPass();
+}
+
+function play(sound) {
+    if (!sound.isPlaying()) {
+        sound.disconnect();
+        sound.connect(filter);
+        sound.play()
+    }
 }
 
 function  draw() {
-    background(51, 51, 51, 5)
-
-    if (particles.length < width * 5) {
-        addParticle()
-    }
-    if (mouseIsPressed) {
-        if (range > 10) {
-            range -= 0.1
+    if (ready) {
+        background(bg, bg, bg, 5)
+        let nbrOfParticles = particles.length
+        globalPerturbation = 0
+    
+        if (!sound2.isPlaying() && !sound2.isPlaying()) {
+            play(sound1)
+        }
+        
+        if (sound1.currentTime() > sound1.duration() - timing) {
+            play(sound2)
+        }
+        if (sound2.currentTime() > sound2.duration() - timing) {
+            play(sound1)
+        }
+    
+        if (nbrOfParticles < particlesLimit) {
+            addParticle()
+        }
+    
+        if (nbrOfParticles < particlesLimit) {
+            let freq = map(nbrOfParticles, 2000, 0, 0, 4500);
+            freq = constrain(freq, 0, 22050);
+            filter.freq(freq);
+        }
+    
+        if (mouseIsPressed) {
+            range -= range / initialRange / 10
         } else {
-            range -= 0.05
+            range = initialRange
+        }
+    
+        for (let index = 0; index < particles.length; index++) {
+            const particle = particles[index]
+            particle.move()
+            particle.repeat()
+            particle.show()
         }
     } else {
-        range = initialRange
+        background(bg)
+        textAlign(CENTER, TOP);
+        textSize(32);
+        fill(255)
+        text('Click to start', width / 2, height / 2);
     }
-    for (let index = 0; index < particles.length; index++) {
-        const particle = particles[index]
-        particle.move()
-        particle.repeat()
-        particle.show()
-    }
-    
 }
