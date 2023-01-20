@@ -1,7 +1,7 @@
 let width = window.innerWidth
 let height = window.innerHeight
 let particles = []
-let particlesLimit = width * 6
+let particlesLimit = 2000
 
 let globalPerturbation = 0
 let nbrOfPerturbatedParticles = 0
@@ -12,12 +12,18 @@ let bg = 51
 
 let sound1
 let sound2
+let sound3
 let timing = 40
+let oldVolume = 0
 
 let filter
+let filterInteraction
+let filterInteraction2
 
 let isFullScreen = false
 let ready = false
+
+let mouseWasPressed = false
 class particle {
     constructor (y) {
         this.pos = { x: width, y: y }
@@ -30,7 +36,7 @@ class particle {
 
     move() {
         // this.pushed(particles.filter((el) => isInRange(el, this, 10)))
-        this.pertubation()
+        // this.pertubation()
         this.pos.x += this.initialVect.x + this.pusher.x + this.perturbater.x
         this.pos.y += this.initialVect.y + this.pusher.y + this.perturbater.y
 
@@ -43,13 +49,12 @@ class particle {
         if (perturbationState && !this.isPerturbated) {
             // newly perturbated
             nbrOfPerturbatedParticles += 1
-            console.log('nbrOfPerturbatedParticles', nbrOfPerturbatedParticles);
         }
         if (!perturbationState && this.isPerturbated) {
             // not anymore
             nbrOfPerturbatedParticles -= 1
-            console.log('nbrOfPerturbatedParticles', nbrOfPerturbatedParticles);
         }
+        
         this.isPerturbated = perturbationState
 
     }
@@ -68,7 +73,7 @@ class particle {
         }
     }
     pertubation() {
-        if (mouseIsPressed === true && isInRange(this, { pos: { x: mouseX, y: mouseY } }, range)) {
+        if (mouseIsPressed && isInRange(this, { pos: { x: mouseX, y: mouseY } }, range)) {
             // let factor = 1
             // let xForce = 0
             // let yForce = 0
@@ -222,12 +227,16 @@ function preload() {
     soundFormats('mp3');
     sound1 = loadSound('./constantSound.mp3');
     sound2 = loadSound('./constantSound.mp3');
+    sound3 = loadSound('./constantSound.mp3');
 }
 
 function setup() {
     createCanvas(width, height)
     background(bg)
     filter = new p5.HighPass();
+    filterInteraction = new p5.BandPass();
+    filterInteraction2 = new p5.HighPass();
+    filterInteraction2.freq(12000)
 }
 
 function play(sound) {
@@ -238,13 +247,29 @@ function play(sound) {
     }
 }
 
+function playInteractionSound() {
+    if (!sound3.isPlaying()) {
+        sound3.disconnect();
+        sound3.connect(filterInteraction);
+        sound3.connect(filterInteraction2);
+        sound3.play()
+        sound3.jump(getCurrentSound().currentTime())
+    }
+}
+
+function getCurrentSound() {
+    if (sound1.isPlaying()) {
+        return sound1
+    }
+    return sound2
+}
+
 function  draw() {
     if (ready) {
         background(bg, bg, bg, 5)
         let nbrOfParticles = particles.length
-        globalPerturbation = 0
     
-        if (!sound2.isPlaying() && !sound2.isPlaying()) {
+        if (!sound1.isPlaying() && !sound2.isPlaying()) {
             play(sound1)
         }
         
@@ -259,17 +284,32 @@ function  draw() {
             addParticle()
         }
     
-        if (nbrOfParticles < particlesLimit) {
-            let freq = map(nbrOfParticles, 2000, 0, 0, 4500);
-            freq = constrain(freq, 0, 22050);
-            filter.freq(freq);
-        }
+        let freq = map(nbrOfParticles, particlesLimit, 0, 0, 4500);
+        freq = constrain(freq, 0, 22050);
+        console.log('freq', freq, nbrOfParticles);
+        
+        filter.freq(freq);
+
+        // playInteractionSound()
+        // filterInteraction.res(globalPerturbation);
+        // let val = map(nbrOfPerturbatedParticles, 0, 30, 6000, 15000)
+        // val = constrain(val, 6000, 15000)
+        // filterInteraction.freq(val)
+        // globalPerturbation /= 1.1
+        // let pertubationVolume = map(globalPerturbation, 30, 100, 0, 1)
+        // pertubationVolume = constrain(pertubationVolume, 0, 1)
+        // if (oldVolume < pertubationVolume) {
+        //     sound3.setVolume(oldVolume += pertubationVolume / 5)
+        // } else {
+        //     sound3.setVolume(oldVolume -= pertubationVolume / 5)
+        // }
+
     
-        if (mouseIsPressed) {
-            range -= range / initialRange / 10
-        } else {
-            range = initialRange
-        }
+        // if (mouseIsPressed) {
+        //     range -= range / initialRange / 10
+        // } else {
+        //     range = initialRange
+        // }
     
         for (let index = 0; index < particles.length; index++) {
             const particle = particles[index]
@@ -284,4 +324,8 @@ function  draw() {
         fill(255)
         text('Click to start', width / 2, height / 2);
     }
+    // if (mouseWasPressed && !mouseIsPressed) {
+    //     sound3.jump(getCurrentSound().currentTime() + random(100))
+    // }
+    // mouseWasPressed = mouseIsPressed
 }
